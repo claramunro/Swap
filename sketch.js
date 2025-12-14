@@ -2,7 +2,7 @@
 // Your body shows the background image, everything else shows the webcam
 
 let video;
-let bodyPix;
+let bodyPixModel;
 let segmentation = null;
 let backgroundImg;
 let resultBuffer;
@@ -34,7 +34,7 @@ async function loadBodyPix() {
   updateLoading('Loading body detection model...');
 
   try {
-    bodyPix = await bodyPixLib.load({
+    bodyPixModel = await bodyPix.load({
       architecture: 'MobileNetV1',
       outputStride: 16,
       multiplier: 0.75,
@@ -58,7 +58,7 @@ async function segmentBody() {
   }
 
   try {
-    segmentation = await bodyPix.segmentPerson(video.elt, {
+    segmentation = await bodyPixModel.segmentPerson(video.elt, {
       flipHorizontal: false,
       internalResolution: 'medium',
       segmentationThreshold: 0.6
