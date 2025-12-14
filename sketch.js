@@ -1,16 +1,21 @@
 // Swap - Body Background Swap
-// Your body shows the background image, everything else shows the webcam
+// Two modes: Swap (body shows background) and Scene (you appear in scene)
 
 let video;
 let bodyPixModel;
 let segmentation = null;
-let backgroundImg;
+let swapImg;
+let sceneImg;
 let resultBuffer;
 let modelReady = false;
 
+// Current mode: 'swap' or 'scene'
+let currentMode = 'scene';
+
 function preload() {
-  // Load background image
-  backgroundImg = loadImage('data/hi.jpg');
+  // Load both background images
+  swapImg = loadImage('data/hi.jpg');
+  sceneImg = loadImage('data/mountain.jpg');
 }
 
 function setup() {
@@ -26,8 +31,22 @@ function setup() {
   video.size(640, 480);
   video.hide();
 
+  // Set up button handlers
+  setupButtons();
+
   // Load BodyPix model
   loadBodyPix();
+}
+
+function setupButtons() {
+  const buttons = document.querySelectorAll('.mode-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+    });
+  });
 }
 
 async function loadBodyPix() {
@@ -43,6 +62,7 @@ async function loadBodyPix() {
 
     modelReady = true;
     hideLoading();
+    showControls();
 
     // Start segmentation loop
     segmentBody();
@@ -77,16 +97,19 @@ function draw() {
     return;
   }
 
+  // Get the right background image for current mode
+  let bgImg = currentMode === 'swap' ? swapImg : sceneImg;
+
   // Process the swap
   if (segmentation && segmentation.data) {
     video.loadPixels();
     resultBuffer.loadPixels();
 
     // Scale factors for background image
-    let bgScaleX = backgroundImg.width / 640;
-    let bgScaleY = backgroundImg.height / 480;
+    let bgScaleX = bgImg.width / 640;
+    let bgScaleY = bgImg.height / 480;
 
-    backgroundImg.loadPixels();
+    bgImg.loadPixels();
 
     for (let y = 0; y < 480; y++) {
       for (let x = 0; x < 640; x++) {
@@ -99,21 +122,34 @@ function draw() {
         // Background image coordinates
         let bgX = floor(mirrorX * bgScaleX);
         let bgY = floor(y * bgScaleY);
-        let bgIndex = (bgY * backgroundImg.width + bgX) * 4;
+        let bgIndex = (bgY * bgImg.width + bgX) * 4;
 
-        if (segmentation.data[segIndex] === 1) {
-          // Person pixel - show background image
-          resultBuffer.pixels[pixelIndex] = backgroundImg.pixels[bgIndex];
-          resultBuffer.pixels[pixelIndex + 1] = backgroundImg.pixels[bgIndex + 1];
-          resultBuffer.pixels[pixelIndex + 2] = backgroundImg.pixels[bgIndex + 2];
-          resultBuffer.pixels[pixelIndex + 3] = 255;
+        let isPerson = segmentation.data[segIndex] === 1;
+
+        if (currentMode === 'swap') {
+          // Swap mode: body shows background, rest shows webcam
+          if (isPerson) {
+            resultBuffer.pixels[pixelIndex] = bgImg.pixels[bgIndex];
+            resultBuffer.pixels[pixelIndex + 1] = bgImg.pixels[bgIndex + 1];
+            resultBuffer.pixels[pixelIndex + 2] = bgImg.pixels[bgIndex + 2];
+          } else {
+            resultBuffer.pixels[pixelIndex] = video.pixels[videoIndex];
+            resultBuffer.pixels[pixelIndex + 1] = video.pixels[videoIndex + 1];
+            resultBuffer.pixels[pixelIndex + 2] = video.pixels[videoIndex + 2];
+          }
         } else {
-          // Background pixel - show webcam
-          resultBuffer.pixels[pixelIndex] = video.pixels[videoIndex];
-          resultBuffer.pixels[pixelIndex + 1] = video.pixels[videoIndex + 1];
-          resultBuffer.pixels[pixelIndex + 2] = video.pixels[videoIndex + 2];
-          resultBuffer.pixels[pixelIndex + 3] = 255;
+          // Scene mode: body shows webcam (you), rest shows background scene
+          if (isPerson) {
+            resultBuffer.pixels[pixelIndex] = video.pixels[videoIndex];
+            resultBuffer.pixels[pixelIndex + 1] = video.pixels[videoIndex + 1];
+            resultBuffer.pixels[pixelIndex + 2] = video.pixels[videoIndex + 2];
+          } else {
+            resultBuffer.pixels[pixelIndex] = bgImg.pixels[bgIndex];
+            resultBuffer.pixels[pixelIndex + 1] = bgImg.pixels[bgIndex + 1];
+            resultBuffer.pixels[pixelIndex + 2] = bgImg.pixels[bgIndex + 2];
+          }
         }
+        resultBuffer.pixels[pixelIndex + 3] = 255;
       }
     }
 
@@ -138,6 +174,11 @@ function updateLoading(msg) {
 function hideLoading() {
   let el = document.getElementById('loading');
   if (el) el.style.display = 'none';
+}
+
+function showControls() {
+  let el = document.getElementById('controls');
+  if (el) el.classList.remove('hidden');
 }
 
 function windowResized() {

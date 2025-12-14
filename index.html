@@ -29,6 +29,35 @@
       z-index: 100;
       text-align: center;
     }
+    #controls {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    .mode-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .mode-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .mode-btn.active {
+      background: rgba(255, 255, 255, 0.9);
+      color: black;
+    }
+    #controls.hidden {
+      display: none;
+    }
     #instructions {
       position: fixed;
       bottom: 20px;
@@ -43,7 +72,13 @@
 </head>
 <body>
   <div id="loading">Loading body detection model...</div>
-  <div id="instructions">Your body shows the background image</div>
+
+  <div id="controls" class="hidden">
+    <button class="mode-btn" data-mode="swap">Swap</button>
+    <button class="mode-btn active" data-mode="scene">Scene</button>
+  </div>
+
+  <div id="instructions">Stand in front of your camera</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
